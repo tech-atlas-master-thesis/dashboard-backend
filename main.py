@@ -5,12 +5,22 @@ from database import get_db_client
 from bson import ObjectId
 import json
 from itertools import combinations
+from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
+
+
 
 BASE_URL = "/api"
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:4200"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get(BASE_URL + "/")
 async def root():
