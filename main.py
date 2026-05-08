@@ -59,6 +59,33 @@ def buildLinks(organisation_map, links, project):
             }
         links[key]["projects"].append(project.get("title"))
 
+def get_fields_with_technologies(db):
+    fields_collection = db["technology_fields"]
+    key_technologies_collection = db["key_technologies"]
+
+    fields = list(fields_collection.find())
+    key_technologies = list(key_technologies_collection.find())
+
+    fields_map = {}
+    for field in fields:
+        field_id_str = str(field["_id"])
+        field["technologies"] = []
+        fields_map[field_id_str] = field
+    
+    for technology in key_technologies:
+        field_id_str = technology.get("field")
+        if field_id_str in fields_map:
+            fields_map[field_id_str]["technologies"].append(technology)
+
+    return list(fields_map.values())
+
+
+@app.get(BASE_URL + "/key-technologies")
+async def get_key_technologies():
+    db = get_db_client()
+    fields_with_technologies = get_fields_with_technologies(db)
+    return json.loads(dumps(fields_with_technologies))
+
 @app.get(BASE_URL + "/network")
 async def build_network():
     db = get_db_client()
@@ -68,12 +95,10 @@ async def build_network():
     links = {}
 
     for project in projects:
-        organisations_from_project = project.get("organisations", [])
-        organisation_ids = []
-        for entry in organisations_from_project:
-            if "orgID" in entry:
-                id = ObjectId(entry["orgID"]["$oid"])
-                organisation_ids.append(id)
+        organisation_ids = project.get("organisations", [])
+        project_leader_id = project.get("project_leader")
+        if project_leader_id and project_leader_id not in organisation_ids:
+            organisation_ids.append(project_leader_id)
                          
         organisation_map = []
         create_organisation_map(organisation_map, organisations_collection, organisation_ids)
