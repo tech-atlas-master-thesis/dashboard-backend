@@ -77,22 +77,29 @@ def get_fields_with_technologies(db):
         }
     ]))
 
-    fields = list(fields_collection.find())
-    key_technologies = list(key_technologies_collection.find())
+@app.get(BASE_URL + "/pipelines")
+async def list_pipelines():
+    db = get_db_client()[DATASETS_COLLECTION]
 
-    fields_map = {}
-    for field in fields:
-        field_id_str = str(field["_id"])
-        field["technologies"] = []
-        fields_map[field_id_str] = field
-    
-    for technology in key_technologies:
-        field_id_str = technology.get("field")
-        if field_id_str in fields_map:
-            fields_map[field_id_str]["technologies"].append(technology)
+    distinct_pipelines = db.distinct("pipeline")
 
-    return list(fields_map.values())
+    return [([await get_pipeline_info(pipeline) for pipeline in distinct_pipelines])]
 
+async def get_pipeline_info(pipeline: str):
+    latest = await get_lastest_pipeline(pipeline)
+
+    return {"pipeline": str(latest["pipeline"]), "pipelineName": latest["pipelineName"], "pipelineType": latest["pipelineType"]}
+
+async def get_lastest_pipeline(pipeline: str) -> dict:
+    db = get_db_client()[DATASETS_COLLECTION]
+
+    return db.find_one({"pipeline": ObjectId(pipeline)})
+
+@app.get(BASE_URL + "/datasets/{pipeline}")
+async def get_datasets(pipeline: str):
+    db = get_db_client()[DATASETS_COLLECTION]
+
+    return [{**dataset, "_id": str(dataset["_id"]), "pipeline": str(dataset["pipeline"])} for dataset in db.find({"pipeline": ObjectId(pipeline)})]
 
 @app.get(BASE_URL + "/key-technologies")
 async def get_key_technologies():
