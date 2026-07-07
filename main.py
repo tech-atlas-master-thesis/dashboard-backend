@@ -1,11 +1,15 @@
-from dotenv import load_dotenv
-from fastapi import FastAPI
-from bson.json_util import dumps
-from database import get_db_client
-from bson import ObjectId
 import json
 from itertools import combinations
+
+from bson import ObjectId
+from bson.json_util import dumps
+from dotenv import load_dotenv
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+from database import get_db_client
+from database.constants import TECHNOLOGIES_COLLECTION, FIELDS_COLLECTION, ORGANIZATIONS_COLLECTION, \
+    PROJECTS_COLLECTION, DATASETS_COLLECTION
 
 load_dotenv()
 
@@ -31,7 +35,7 @@ async def say_hello(name: str):
     return {"message": f"Hello {name}"}
 
 def get_projects(db):
-    projects_collection = db["projects"]
+    projects_collection = db[PROJECTS_COLLECTION]
     projects = list(projects_collection.find())
     return projects
 
@@ -60,8 +64,18 @@ def buildLinks(organisation_map, links, project):
         links[key]["projects"].append(project.get("title"))
 
 def get_fields_with_technologies(db):
-    fields_collection = db["technology_fields"]
-    key_technologies_collection = db["key_technologies"]
+    fields_collection = db[FIELDS_COLLECTION]
+
+    return list(fields_collection.aggregate([
+        {
+            "$lookup": {
+                "from": TECHNOLOGIES_COLLECTION,
+                "localField": "technologies",
+                "foreignField": "_id",
+                "as": "technologies"
+            }
+        }
+    ]))
 
     fields = list(fields_collection.find())
     key_technologies = list(key_technologies_collection.find())
@@ -89,7 +103,7 @@ async def get_key_technologies():
 @app.get(BASE_URL + "/network")
 async def build_network():
     db = get_db_client()
-    organisations_collection = db["organisations"]
+    organisations_collection = db[ORGANIZATIONS_COLLECTION]
     projects = get_projects(db)
     nodes = {}
     links = {}
