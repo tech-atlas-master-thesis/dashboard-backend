@@ -87,25 +87,15 @@ def get_fields_with_technologies(db: Database, dataset: str):
 async def list_pipelines():
     db = get_db_client()[DATASETS_COLLECTION]
 
-    distinct_pipelines = db.distinct("pipeline")
+    distinct_pipelines = db.distinct("pipelineName")
 
-    return [await get_pipeline_info(pipeline) for pipeline in distinct_pipelines]
-
-async def get_pipeline_info(pipeline: str):
-    latest = await get_lastest_pipeline(pipeline)
-
-    return {"pipeline": str(latest["pipeline"]), "pipelineName": latest["pipelineName"], "pipelineType": latest["pipelineType"]}
-
-async def get_lastest_pipeline(pipeline: str) -> dict:
-    db = get_db_client()[DATASETS_COLLECTION]
-
-    return db.find_one({"pipeline": ObjectId(pipeline)})
+    return distinct_pipelines
 
 @app.get(BASE_URL + "/datasets/{pipeline}")
 async def get_datasets(pipeline: str):
     db = get_db_client()[DATASETS_COLLECTION]
 
-    return [{**dataset, "_id": str(dataset["_id"]), "pipeline": str(dataset["pipeline"])} for dataset in db.find({"pipeline": ObjectId(pipeline)})]
+    return [{**dataset, "_id": str(dataset["_id"]), "pipeline": str(dataset["pipeline"])} for dataset in db.find({"pipelineName": pipeline}).sort({"_id": -1})]
 
 @app.get(BASE_URL + "/data/{dataset}/key-technologies")
 async def get_key_technologies(dataset: str):
