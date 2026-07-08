@@ -6,6 +6,7 @@ from bson.json_util import dumps
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from pymongo.synchronous.database import Database
 
 from database import get_db_client
 from database.constants import TECHNOLOGIES_COLLECTION, FIELDS_COLLECTION, ORGANIZATIONS_COLLECTION, \
@@ -34,9 +35,9 @@ async def root():
 async def say_hello(name: str):
     return {"message": f"Hello {name}"}
 
-def get_projects(db):
+def get_projects(db: Database, dataset: str):
     projects_collection = db[PROJECTS_COLLECTION]
-    projects = list(projects_collection.find())
+    projects = list(projects_collection.find({"dataset": ObjectId(dataset)}))
     return projects
 
 def create_organisation_map(organisation_map, organisations_collection, organisation_ids):
@@ -63,10 +64,15 @@ def buildLinks(organisation_map, links, project):
             }
         links[key]["projects"].append(project.get("title"))
 
-def get_fields_with_technologies(db):
+def get_fields_with_technologies(db: Database, dataset: str):
     fields_collection = db[FIELDS_COLLECTION]
 
     return list(fields_collection.aggregate([
+        {
+            "$match": {
+                "dataset": ObjectId(dataset)
+            }
+        },
         {
             "$lookup": {
                 "from": TECHNOLOGIES_COLLECTION,
@@ -83,7 +89,7 @@ async def list_pipelines():
 
     distinct_pipelines = db.distinct("pipeline")
 
-    return [([await get_pipeline_info(pipeline) for pipeline in distinct_pipelines])]
+    return [await get_pipeline_info(pipeline) for pipeline in distinct_pipelines]
 
 async def get_pipeline_info(pipeline: str):
     latest = await get_lastest_pipeline(pipeline)
@@ -101,17 +107,17 @@ async def get_datasets(pipeline: str):
 
     return [{**dataset, "_id": str(dataset["_id"]), "pipeline": str(dataset["pipeline"])} for dataset in db.find({"pipeline": ObjectId(pipeline)})]
 
-@app.get(BASE_URL + "/key-technologies")
-async def get_key_technologies():
+@app.get(BASE_URL + "/data/{dataset}/key-technologies")
+async def get_key_technologies(dataset: str):
     db = get_db_client()
-    fields_with_technologies = get_fields_with_technologies(db)
+    fields_with_technologies = get_fields_with_technologies(db, dataset)
     return json.loads(dumps(fields_with_technologies))
 
-@app.get(BASE_URL + "/network")
-async def build_network():
+@app.get(BASE_URL + "/data/{dataset}/network")
+async def build_network(dataset: str):
     db = get_db_client()
     organisations_collection = db[ORGANIZATIONS_COLLECTION]
-    projects = get_projects(db)
+    projects = get_projects(db, dataset)
     nodes = {}
     links = {}
 
