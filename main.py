@@ -127,13 +127,14 @@ async def build_network(dataset: str):
         "links": list(links.values())
     }))
 
-@app.get(BASE_URL + "/network/{technology_id}")
-async def build_network_by_technology(technology_id: str):
+@app.get(BASE_URL + "/data/{dataset}/network/{technology_id}")
+async def build_network_by_technology(dataset: str, technology_id: str):
     print(technology_id)
     db = get_db_client()
     organisations_collection = db["organisations"]
     projects = list(db["projects"].find({
-        "keyTechnologies": ObjectId(technology_id)
+        "keyTechnologies": ObjectId(technology_id),
+        "dataset": ObjectId(dataset)
     }))
 
     nodes = {}
@@ -155,14 +156,15 @@ async def build_network_by_technology(technology_id: str):
         "links": list(links.values())
     }))
 
-@app.get(BASE_URL + "/network/field/{field_id}")
-async def build_network_by_field(field_id: str):
+@app.get(BASE_URL + "/data/{dataset}/network/field/{field_id}")
+async def build_network_by_field(dataset: str, field_id: str):
     db = get_db_client()
     organisations_collection = db["organisations"]
     key_technologies_collection = db["key_technologies"]
 
     technologies = list(key_technologies_collection.find({
-        "field": ObjectId(field_id)
+        "field": ObjectId(field_id),
+        "dataset": ObjectId(dataset)
     }))
     technology_ids = [t["_id"] for t in technologies]
 
