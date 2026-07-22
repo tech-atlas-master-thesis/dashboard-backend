@@ -127,5 +127,68 @@ async def build_network(dataset: str):
         "links": list(links.values())
     }))
 
+@app.get(BASE_URL + "/network/{technology_id}")
+async def build_network_by_technology(technology_id: str):
+    print(technology_id)
+    db = get_db_client()
+    organisations_collection = db["organisations"]
+    projects = list(db["projects"].find({
+        "keyTechnologies": ObjectId(technology_id)
+    }))
+
+    nodes = {}
+    links = {}
+
+    for project in projects:
+        organisation_ids = project.get("organisations", [])
+        project_leader_id = project.get("project_leader")
+        if project_leader_id and project_leader_id not in organisation_ids:
+            organisation_ids.append(project_leader_id)
+                         
+        organisation_map = []
+        create_organisation_map(organisation_map, organisations_collection, organisation_ids)
+        buildNodes(organisation_map, nodes)
+        buildLinks(organisation_map, links, project)
+
+    return json.loads(dumps({
+        "nodes": list(nodes.values()),
+        "links": list(links.values())
+    }))
+
+@app.get(BASE_URL + "/network/field/{field_id}")
+async def build_network_by_field(field_id: str):
+    db = get_db_client()
+    organisations_collection = db["organisations"]
+    key_technologies_collection = db["key_technologies"]
+
+    technologies = list(key_technologies_collection.find({
+        "field": ObjectId(field_id)
+    }))
+    technology_ids = [t["_id"] for t in technologies]
+
+    projects = list(db["projects"].find({
+        "keyTechnologies": {"$in": technology_ids}
+    }))
+
+    nodes = {}
+    links = {}
+
+    for project in projects:
+        organisation_ids = project.get("organisations", [])
+        project_leader_id = project.get("project_leader")
+
+        if project_leader_id and project_leader_id not in organisation_ids:
+            organisation_ids.append(project_leader_id)
+
+        organisation_map = []
+        create_organisation_map(organisation_map, organisations_collection, organisation_ids)
+        buildNodes(organisation_map, nodes)
+        buildLinks(organisation_map, links, project)
+
+    return json.loads(dumps({
+        "nodes": list(nodes.values()),
+        "links": list(links.values())
+    }))
+
 
 
