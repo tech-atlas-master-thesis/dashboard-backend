@@ -87,7 +87,7 @@ def get_fields_with_technologies(db: Database, dataset: str):
 async def list_pipelines():
     db = get_db_client()[DATASETS_COLLECTION]
 
-    distinct_pipelines = db.distinct("pipelineName")
+    distinct_pipelines = db.distinct("pipelineName", {"active": True})
 
     return distinct_pipelines
 
@@ -95,7 +95,7 @@ async def list_pipelines():
 async def get_datasets(pipeline: str):
     db = get_db_client()[DATASETS_COLLECTION]
 
-    return [{**dataset, "_id": str(dataset["_id"]), "pipeline": str(dataset["pipeline"])} for dataset in db.find({"pipelineName": pipeline}).sort({"_id": -1})]
+    return [{**dataset, "_id": str(dataset["_id"]), "pipeline": str(dataset["pipeline"])} for dataset in db.find({"pipelineName": pipeline, "active": True}).sort({"_id": -1})]
 
 @app.get(BASE_URL + "/data/{dataset}/key-technologies")
 async def get_key_technologies(dataset: str):
