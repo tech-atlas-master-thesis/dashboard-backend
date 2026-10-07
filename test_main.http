@@ -14,6 +14,11 @@ Accept: application/json
 ###
 
 ###
-GET http://127.0.0.1:8000/api/key-technologies
+GET http://127.0.0.1:8080/api/data/6a66650214a451e3a1112363/organisation/6a66650514a451e3a111256c
+Accept: application/json
+###
+
+###
+GET http://127.0.0.1:8080/api/data/6a66650214a451e3a1112363/project/6a66650514a451e3a1114487
 Accept: application/json
 ###
