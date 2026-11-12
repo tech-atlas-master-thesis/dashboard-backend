@@ -10,7 +10,6 @@ from database.constants import (
     TECHNOLOGIES_COLLECTION,
 )
 
-
 TOP_PARTNERS = 10
 
 def organisation_detail(db: Database, dataset_oid: ObjectId, org_oid: ObjectId):

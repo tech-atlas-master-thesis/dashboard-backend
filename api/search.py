@@ -1,29 +1,27 @@
 import re
 
-from bson import ObjectId
-from bson.errors import InvalidId
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Query
 
+from api import BASE_URL
+from api.params import to_oid
 from database import get_db_client
 from database.constants import ORGANIZATIONS_COLLECTION, PROJECTS_COLLECTION
 
-router = APIRouter(prefix="/api")
+router = APIRouter(prefix=BASE_URL, tags=["search"])
 
 MIN_LENGTH = 2
 MAX_HITS = 500
 
 @router.get("/data/{dataset}/search")
-async def search(dataset: str, q: str = Query(default="")):
+def search(dataset: str, q: str = Query(default="")):
     term = (q or "").strip()
     if len(term) < MIN_LENGTH:
         return {"organisations": [], "projects": [], "term": term}
 
-    try:
-        dataset_oid = ObjectId(dataset)
-    except (InvalidId, TypeError):
-        raise HTTPException(status_code=400, detail="Ungültige Datensatz-ID")
+    dataset_oid = to_oid(dataset, "Datensatz-ID")
 
     db = get_db_client()
+
     pattern = {"$regex": re.escape(term), "$options": "i"}
 
     organisations = list(

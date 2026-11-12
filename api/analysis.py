@@ -9,6 +9,6 @@ from database import get_db_client
 router = APIRouter(prefix=BASE_URL, tags=["analysis"])
 
 @router.get("/data/{dataset}/analysis/fields")
-async def analysis_fields(dataset: str):
+def analysis_fields(dataset: str):
     db = get_db_client()
     return serialise(field_analysis(db, to_oid(dataset, "dataset")))

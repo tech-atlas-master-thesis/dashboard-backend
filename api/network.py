@@ -10,20 +10,36 @@ from database.constants import FIELDS_COLLECTION, PROJECTS_COLLECTION
 
 router = APIRouter(prefix=BASE_URL, tags=["network"])
 
+NETWORK_PROJECT_FIELDS = {
+    "externalId": 1,
+    "short": 1,
+    "title": 1,
+    "abstract": 1,
+    "start": 1,
+    "end": 1,
+    "status": 1,
+    "keywords": 1,
+    "organisations": 1,
+    "projectLeader": 1,
+    "grant": 1,
+}
+
 @router.get("/data/{dataset}/key-technologies")
-async def get_key_technologies(dataset: str):
+def get_key_technologies(dataset: str):
     db = get_db_client()
     return serialise(fields_with_technologies(db, to_oid(dataset, "dataset")))
 
-
 @router.get("/data/{dataset}/network")
-async def build_network(dataset: str):
+def build_network(dataset: str):
     db = get_db_client()
-    projects = list(db[PROJECTS_COLLECTION].find({"dataset": to_oid(dataset, "dataset")}))
+    projects = list(db[PROJECTS_COLLECTION].find(
+        {"dataset": to_oid(dataset, "dataset")},
+        NETWORK_PROJECT_FIELDS,
+    ))
     return serialise(build_network_from_projects(db, projects))
 
 @router.get("/data/{dataset}/network/field/{field_id}")
-async def build_network_by_field(dataset: str, field_id: str):
+def build_network_by_field(dataset: str, field_id: str):
     db = get_db_client()
     dataset_oid = to_oid(dataset, "dataset")
 
@@ -37,17 +53,24 @@ async def build_network_by_field(dataset: str, field_id: str):
     if not technology_ids:
         return serialise({"nodes": [], "projects": []})
 
-    projects = list(db[PROJECTS_COLLECTION].find({
-        "keyTechnologies": {"$in": technology_ids},
-        "dataset": dataset_oid,
-    }))
+    projects = list(db[PROJECTS_COLLECTION].find(
+        {
+            "keyTechnologies": {"$in": technology_ids},
+            "dataset": dataset_oid,
+        },
+        NETWORK_PROJECT_FIELDS,
+    ))
     return serialise(build_network_from_projects(db, projects))
 
+
 @router.get("/data/{dataset}/network/{technology_id}")
-async def build_network_by_technology(dataset: str, technology_id: str):
+def build_network_by_technology(dataset: str, technology_id: str):
     db = get_db_client()
-    projects = list(db[PROJECTS_COLLECTION].find({
-        "keyTechnologies": to_oid(technology_id, "technology_id"),
-        "dataset": to_oid(dataset, "dataset"),
-    }))
+    projects = list(db[PROJECTS_COLLECTION].find(
+        {
+            "keyTechnologies": to_oid(technology_id, "technology_id"),
+            "dataset": to_oid(dataset, "dataset"),
+        },
+        NETWORK_PROJECT_FIELDS,
+    ))
     return serialise(build_network_from_projects(db, projects))

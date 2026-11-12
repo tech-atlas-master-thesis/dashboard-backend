@@ -9,7 +9,7 @@ from database import get_db_client
 router = APIRouter(prefix=BASE_URL, tags=["details"])
 
 @router.get("/data/{dataset}/organisation/{organisation_id}")
-async def get_organisation(dataset: str, organisation_id: str):
+def get_organisation(dataset: str, organisation_id: str):
     data = organisation_detail(
         get_db_client(),
         to_oid(dataset, "dataset"),
@@ -20,7 +20,7 @@ async def get_organisation(dataset: str, organisation_id: str):
     return serialise(data)
 
 @router.get("/data/{dataset}/project/{project_id}")
-async def get_project(dataset: str, project_id: str):
+def get_project(dataset: str, project_id: str):
     data = project_detail(
         get_db_client(),
         to_oid(dataset, "dataset"),

@@ -10,12 +10,12 @@ ACTIVE_FILTER = {"active": True}
 HIDDEN_FIELDS = {"created.by": 0}
 
 @router.get("/pipelines")
-async def list_pipelines():
+def list_pipelines():
     db = get_db_client()[DATASETS_COLLECTION]
     return db.distinct("pipelineName", ACTIVE_FILTER)
 
 @router.get("/datasets/{pipeline}")
-async def get_datasets(pipeline: str):
+def get_datasets(pipeline: str):
     db = get_db_client()[DATASETS_COLLECTION]
     return [
         {**dataset, "_id": str(dataset["_id"]), "pipeline": str(dataset["pipeline"])}
