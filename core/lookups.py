@@ -7,6 +7,7 @@ from database.constants import (
     GRANTS_COLLECTION,
     PROGRAMMES_COLLECTION,
     TECHNOLOGIES_COLLECTION,
+    PROJECTS_COLLECTION
 )
 
 def field_index(db: Database, dataset_oid: ObjectId):
@@ -24,7 +25,7 @@ def project_fields(project: dict, field_of_technology: dict) -> set:
     return found
 
 def fields_with_technologies(db: Database, dataset_oid: ObjectId):
-    return list(db[FIELDS_COLLECTION].aggregate([
+    fields = list(db[FIELDS_COLLECTION].aggregate([
         {"$match": {"dataset": dataset_oid}},
         {"$lookup": {
             "from": TECHNOLOGIES_COLLECTION,
@@ -33,6 +34,19 @@ def fields_with_technologies(db: Database, dataset_oid: ObjectId):
             "as": "technologies",
         }},
     ]))
+
+    for field in fields:
+        technology_ids = [t["_id"] for t in field.get("technologies") or []]
+        field["projects"] = (
+            db[PROJECTS_COLLECTION].count_documents({
+                "dataset": dataset_oid,
+                "keyTechnologies": {"$in": technology_ids},
+            })
+            if technology_ids
+            else 0
+        )
+
+    return fields
 
 def funding_lookup(db: Database, projects: list[dict]):
     grant_ids = set()

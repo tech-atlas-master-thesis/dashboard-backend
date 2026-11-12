@@ -35,6 +35,11 @@ RECURRING_PROJECT_FIELDS = {
     "end": 1,
 }
 
+def _project_sort_key(row: dict):
+    start = row.get("start")
+    return (start is not None, str(start) if start is not None else "")
+
+
 def organisation_detail(db: Database, dataset_oid: ObjectId, org_oid: ObjectId):
     organisation = db[ORGANIZATIONS_COLLECTION].find_one(
         {"_id": org_oid, "dataset": dataset_oid}
@@ -100,7 +105,7 @@ def organisation_detail(db: Database, dataset_oid: ObjectId, org_oid: ObjectId):
             "fields": [str(field_id) for field_id in found],
         })
 
-    rows.sort(key=lambda r: (r["start"] is None, r["start"]), reverse=True)
+    rows.sort(key=_project_sort_key, reverse=True)  # GEÄNDERT 1
     assignments = sum(by_field[f["_id"]] for f in fields)
 
     profile = [
@@ -110,7 +115,7 @@ def organisation_detail(db: Database, dataset_oid: ObjectId, org_oid: ObjectId):
             "short": clean_str(f.get("short")),
             "style": f.get("style"),
             "projects": by_field[f["_id"]],
-            "share": share(by_field[f["_id"]], assignments),
+            "share": share(by_field[f["_id"]], len(projects)),
         }
         for f in fields if by_field[f["_id"]] > 0
     ]
@@ -168,6 +173,7 @@ def project_detail(db: Database, dataset_oid: ObjectId, project_oid: ObjectId):
     ))
     org_by_id = {
         str(o["_id"]): o
+        # OFFEN A: wie oben, hier fehlt ebenfalls "dataset": dataset_oid.
         for o in db[ORGANIZATIONS_COLLECTION].find({"_id": {"$in": member_ids}})
     }
 
@@ -180,7 +186,7 @@ def project_detail(db: Database, dataset_oid: ObjectId, project_oid: ObjectId):
         org_type = clean_str(organisation.get("type")) or "Unbekannt"
         type_counts[org_type] = type_counts.get(org_type, 0) + 1
         members.append({**organisation, "leading": str(member_id) in leaders})
-    
+
     members.sort(key=lambda o: not o["leading"])
 
     technology_fields = _technologies_by_field(db, project, fields, field_of_technology)
