@@ -10,10 +10,6 @@ from database.constants import (
 )
 
 def field_index(db: Database, dataset_oid: ObjectId):
-    """
-    Die Felder laden und dazu den umgekehrten Index Technologie → Felder.
-    Eine Technologie kann in mehreren Feldern stehen, daher eine Liste.
-    """
     fields = list(db[FIELDS_COLLECTION].find({"dataset": dataset_oid}))
     field_of_technology: dict = {}
     for field in fields:
@@ -27,7 +23,6 @@ def project_fields(project: dict, field_of_technology: dict) -> set:
         found.update(field_of_technology.get(technology, []))
     return found
 
-
 def fields_with_technologies(db: Database, dataset_oid: ObjectId):
     return list(db[FIELDS_COLLECTION].aggregate([
         {"$match": {"dataset": dataset_oid}},
@@ -38,7 +33,6 @@ def fields_with_technologies(db: Database, dataset_oid: ObjectId):
             "as": "technologies",
         }},
     ]))
-
 
 def funding_lookup(db: Database, projects: list[dict]):
     grant_ids = set()
@@ -59,7 +53,6 @@ def funding_lookup(db: Database, projects: list[dict]):
         for pr in db[PROGRAMMES_COLLECTION].find({"_id": {"$in": list(programme_ids)}})
     }
     return grant_by_id, programme_by_id
-
 
 def funding_line(project: dict, grant_by_id: dict, programme_by_id: dict):
     grant_oids = as_oid_list(project.get("grant"))

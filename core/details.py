@@ -12,15 +12,43 @@ from database.constants import (
 
 TOP_PARTNERS = 10
 
+ORGANISATION_PROJECT_FIELDS = {
+    "organisations": 1,
+    "projectLeader": 1,
+    "keyTechnologies": 1,
+    "grant": 1,
+    "status": 1,
+    "short": 1,
+    "title": 1,
+    "start": 1,
+    "end": 1,
+}
+
+RECURRING_PROJECT_FIELDS = {
+    "organisations": 1,
+    "projectLeader": 1,
+    "grant": 1,
+    "status": 1,
+    "short": 1,
+    "title": 1,
+    "start": 1,
+    "end": 1,
+}
+
 def organisation_detail(db: Database, dataset_oid: ObjectId, org_oid: ObjectId):
-    organisation = db[ORGANIZATIONS_COLLECTION].find_one({"_id": org_oid})
+    organisation = db[ORGANIZATIONS_COLLECTION].find_one(
+        {"_id": org_oid, "dataset": dataset_oid}
+    )
     if not organisation:
         return None
 
-    projects = list(db[PROJECTS_COLLECTION].find({
-        "dataset": dataset_oid,
-        "$or": [{"organisations": org_oid}, {"projectLeader": org_oid}],
-    }))
+    projects = list(db[PROJECTS_COLLECTION].find(
+        {
+            "dataset": dataset_oid,
+            "$or": [{"organisations": org_oid}, {"projectLeader": org_oid}],
+        },
+        ORGANISATION_PROJECT_FIELDS,
+    ))
 
     fields, field_of_technology = field_index(db, dataset_oid)
     grant_by_id, programme_by_id = funding_lookup(db, projects)
@@ -42,7 +70,6 @@ def organisation_detail(db: Database, dataset_oid: ObjectId, org_oid: ObjectId):
         for other in others:
             partner_counts[other] = partner_counts.get(other, 0) + 1
 
-        # Mehrere Leitungen je Projekt sind möglich.
         leaders = {str(o) for o in as_oid_list(project.get("projectLeader"))}
         is_leader = self_id in leaders
         if is_leader:
@@ -204,8 +231,7 @@ def _technologies_by_field(db: Database, project: dict, fields: list, field_of_t
         technology = technology_by_id.get(technology_oid)
         if not technology:
             continue
-        # Der Vorgabewert [None] sammelt Technologien ohne Feld in einer
-        # eigenen Gruppe, die im Frontend als "Ohne Feld" erscheint.
+
         for field_id in field_of_technology.get(technology_oid, [None]):
             groups.setdefault(field_id, []).append(technology)
 
@@ -223,14 +249,17 @@ def _technologies_by_field(db: Database, project: dict, fields: list, field_of_t
 
 def _recurring_consortia(db: Database, dataset_oid: ObjectId, project_oid: ObjectId, project: dict, member_ids: list):
     own = participants(project)
-    candidates = list(db[PROJECTS_COLLECTION].find({
-        "dataset": dataset_oid,
-        "_id": {"$ne": project_oid},
-        "$or": [
-            {"organisations": {"$in": member_ids}},
-            {"projectLeader": {"$in": member_ids}},
-        ],
-    }))
+    candidates = list(db[PROJECTS_COLLECTION].find(
+        {
+            "dataset": dataset_oid,
+            "_id": {"$ne": project_oid},
+            "$or": [
+                {"organisations": {"$in": member_ids}},
+                {"projectLeader": {"$in": member_ids}},
+            ],
+        },
+        RECURRING_PROJECT_FIELDS,
+    ))
 
     candidate_grants, candidate_programmes = funding_lookup(db, candidates)
 

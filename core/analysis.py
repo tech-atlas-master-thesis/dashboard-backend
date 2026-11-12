@@ -6,9 +6,22 @@ from core.lookups import field_index, project_fields
 from core.values import as_oid_list, clean_str
 from database.constants import ORGANIZATIONS_COLLECTION, PROJECTS_COLLECTION
 
+ANALYSIS_FIELDS = {"organisations": 1, "projectLeader": 1, "keyTechnologies": 1}
+
+_cache: dict[ObjectId, dict] = {}
+
+def clear_cache() -> None:
+    _cache.clear()
+
 def field_analysis(db: Database, dataset_oid: ObjectId) -> dict:
+    cached = _cache.get(dataset_oid)
+    if cached is not None:
+        return cached
+
     fields, field_of_technology = field_index(db, dataset_oid)
-    projects = list(db[PROJECTS_COLLECTION].find({"dataset": dataset_oid}))
+    projects = list(
+        db[PROJECTS_COLLECTION].find({"dataset": dataset_oid}, ANALYSIS_FIELDS)
+    )
 
     org_ids = set()
     for project in projects:
@@ -29,7 +42,7 @@ def field_analysis(db: Database, dataset_oid: ObjectId) -> dict:
         if not found:
             without_field += 1
         for field_id in found:
-            by_field[field_id].append(project)
+            by_field.setdefault(field_id, []).append(project)
 
     rows = []
     for field in fields:
@@ -43,8 +56,10 @@ def field_analysis(db: Database, dataset_oid: ObjectId) -> dict:
 
     rows.sort(key=lambda r: r["projects"], reverse=True)
 
-    return {
+    result = {
         "fields": rows,
         "total": metrics(projects, org_types),
         "projectsWithoutField": without_field,
     }
+    _cache[dataset_oid] = result
+    return result

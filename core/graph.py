@@ -12,14 +12,11 @@ def participants(project: dict) -> set[str]:
     ids.update(str(o) for o in as_oid_list(project.get("projectLeader")))
     return ids
 
-
 def projection(projects: list[dict]):
     neighbours: dict = {}
     edges = set()
 
     for project in projects:
-        # Sortiert, damit ein Paar immer in derselben Reihenfolge entsteht und
-        # (a, b) und (b, a) nicht beide in der Kantenmenge landen.
         ids = sorted(participants(project))
         for i in ids:
             neighbours.setdefault(i, set())
@@ -29,7 +26,6 @@ def projection(projects: list[dict]):
             neighbours[b].add(a)
 
     return neighbours, edges
-
 
 def component_sizes(neighbours: dict) -> list[int]:
     seen = set()
@@ -51,7 +47,6 @@ def component_sizes(neighbours: dict) -> list[int]:
         sizes.append(size)
 
     return sizes
-
 
 def metrics(projects: list[dict], org_types: dict) -> dict:
     neighbours, edges = projection(projects)
